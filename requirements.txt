@@ -1,0 +1,8 @@
+# For only app.py
+streamlit 
+pandas
+scikit-learn
+xgboost
+
+# for research
+#  -- to be updated 
