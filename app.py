@@ -2,21 +2,21 @@ import streamlit as st
 import pandas as pd
 import traceback
 import joblib
-import sys
-import numpy as np
+
+# Set the page configuration
+st.set_page_config(page_title="Credit Risk Prediction App", layout="wide")
 
 def load_model(file_path):
     try:
         model = joblib.load(file_path)
-        st.success(f"Successfully loaded model from {file_path}")
         return model
     except Exception as e:
         st.error(f"Error loading model from {file_path}: {str(e)}")
         st.error(f"Traceback: {traceback.format_exc()}")
         return None
 
-# Load the saved model
-model = load_model('model.joblib')
+# Load the saved XGBoost model
+xgb_model = load_model('model.joblib')
 
 # Define the input features
 features = [
@@ -27,53 +27,53 @@ features = [
 
 # Function to get user input
 def user_input_features():
-    data = {}
-    data['Age_Oldest_TL'] = st.number_input('Age of Oldest Trade Line', min_value=0, max_value=100, value=10)
-    data['enq_L3m'] = st.number_input('Number of Enquiries in Last 3 Months', min_value=0, max_value=100, value=1)
-    data['time_since_recent_enq'] = st.number_input('Time Since Recent Enquiry', min_value=0, max_value=100, value=5)
-    data['num_std'] = st.number_input('Number of Standard Deviation', min_value=0, max_value=100, value=1)
-    data['time_since_recent_payment'] = st.number_input('Time Since Recent Payment', min_value=0, max_value=100, value=5)
-    data['Time_With_Curr_Empr'] = st.number_input('Time with Current Employer', min_value=0, max_value=100, value=5)
-    data['NETMONTHLYINCOME'] = st.number_input('Net Monthly Income', min_value=0, max_value=100000, value=50000)
-    data['Age_Newest_TL'] = st.number_input('Age of Newest Trade Line', min_value=0, max_value=100, value=1)
-    data['num_std_6mts'] = st.number_input('Number of Standard Deviation in Last 6 Months', min_value=0, max_value=100, value=1)
-    data['tot_enq'] = st.number_input('Total Enquiries', min_value=0, max_value=100, value=5)
-    data['pct_PL_enq_L6m_of_ever'] = st.number_input('Percentage of Personal Loan Enquiries in Last 6 Months', min_value=0, max_value=100, value=10)
-    data['recent_level_of_deliq'] = st.number_input('Recent Level of Delinquency', min_value=0, max_value=10, value=0)
+    st.sidebar.header("Input Features")
+    data = {
+        'Age_Oldest_TL': st.sidebar.slider('Age of Oldest Trade Line (years)', 0, 100, 10),
+        'enq_L3m': st.sidebar.slider('Number of Enquiries in Last 3 Months', 0, 100, 1),
+        'time_since_recent_enq': st.sidebar.slider('Time Since Recent Enquiry (months)', 0, 100, 5),
+        'num_std': st.sidebar.slider('Number of Standard Deviation', 0, 100, 1),
+        'time_since_recent_payment': st.sidebar.slider('Time Since Recent Payment (months)', 0, 100, 5),
+        'Time_With_Curr_Empr': st.sidebar.slider('Time with Current Employer (months)', 0, 100, 5),
+        'NETMONTHLYINCOME': st.sidebar.number_input('Net Monthly Income', min_value=0, max_value=100000, value=50000),
+        'Age_Newest_TL': st.sidebar.slider('Age of Newest Trade Line (years)', 0, 100, 1),
+        'num_std_6mts': st.sidebar.slider('Number of Standard Deviation in Last 6 Months', 0, 100, 1),
+        'tot_enq': st.sidebar.slider('Total Enquiries', 0, 100, 5),
+        'pct_PL_enq_L6m_of_ever': st.sidebar.slider('Percentage of Personal Loan Enquiries in Last 6 Months (%)', 0, 100, 10),
+        'recent_level_of_deliq': st.sidebar.slider('Recent Level of Delinquency', 0, 10, 0)
+    }
     features_df = pd.DataFrame(data, index=[0])
     return features_df
+
+# Function to interpret prediction results
+def interpret_prediction(prediction):
+    mapping = {
+        1: "Low Risk",
+        2: "Medium Risk",
+        3: "High Risk",
+    }
+    return mapping.get(prediction, "Unknown Risk Level")
 
 # Main Streamlit app
 def main():
     st.title("Credit Risk Prediction App")
     st.write("""
-    ### Enter the following details to predict the credit risk:
-    """)
-    
-    st.write("""
-    - **Age of Oldest Trade Line**: Age of the oldest trade line in years.
-    - **Number of Enquiries in Last 3 Months**: Number of credit enquiries in the last 3 months.
-    - **Time Since Recent Enquiry**: Time (in months) since the last credit enquiry.
-    - **Number of Standard Deviation**: Standard deviation of the number of trade lines.
-    - **Time Since Recent Payment**: Time (in months) since the most recent payment.
-    - **Time with Current Employer**: Time (in months) with the current employer.
-    - **Net Monthly Income**: Net monthly income in the local currency.
-    - **Age of Newest Trade Line**: Age of the newest trade line in years.
-    - **Number of Standard Deviation in Last 6 Months**: Standard deviation of the number of trade lines in the last 6 months.
-    - **Total Enquiries**: Total number of credit enquiries.
-    - **Percentage of Personal Loan Enquiries in Last 6 Months**: Percentage of personal loan enquiries in the last 6 months out of all enquiries.
-    - **Recent Level of Delinquency**: Level of recent delinquency on a scale of 0 to 10.
+    Enter the details to predict the credit risk using the XGBoost model.
     """)
     
     input_df = user_input_features()
     
-    st.write("### User Input:")
+    st.write("## User Input:")
     st.write(input_df)
     
-    # Prediction
-    if st.button("Predict with XGBoost"):
-        xgb_prediction = model.predict(input_df)
-        st.write(f"XGBoost Prediction: {xgb_prediction[0]}")
+    if xgb_model is not None and st.button("Predict"):
+        try:
+            prediction = xgb_model.predict(input_df)[0]
+            risk_level = interpret_prediction(prediction)
+            st.success(f"XGBoost Prediction: {prediction} ({risk_level})")
+        except Exception as e:
+            st.error(f"Error making prediction: {str(e)}")
+            st.error(f"Traceback: {traceback.format_exc()}")
 
 if __name__ == '__main__':
     main()
