@@ -97,9 +97,6 @@ def main():
     
     input_df = user_input_features()
     
-    st.write("## User Input Summary:")
-    st.table(input_df)
-    
     input_data = {row['Feature']: row['Value'] for index, row in input_df.iterrows()}
     input_df_formatted = pd.DataFrame(input_data, index=[0])
     
