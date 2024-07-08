@@ -49,7 +49,7 @@ def user_input_features():
     for feature, explanation in explanations.items():
         st.write(f'#### {explanation}')
         if feature == 'NETMONTHLYINCOME':
-            value = st.number_input(f"{feature}", min_value=0, max_value=100000, value=50000)
+            value = st.number_input(f"{feature}", min_value=0, max_value=10000000, value=50000)
         else:
             value = st.slider(f"{feature}", 0, 100, 1)
         input_data.append((feature, value))
@@ -66,14 +66,34 @@ def interpret_prediction(prediction):
     }
     return mapping.get(prediction, "Unknown Risk Level")
 
+# Function to generate HTML for the slider
+def get_slider_html(prediction):
+    if prediction == 1:
+        position = 0
+    elif prediction == 2:
+        position = 50
+    else:
+        position = 100
+        
+    html = f"""
+    <div style="width: 100%; display: flex; justify-content: center; align-items: center;">
+        <div style="width: 80%; height: 30px; position: relative; background: linear-gradient(90deg, green 0%, yellow 50%, red 100%); border-radius: 5px;">
+            <div style="position: absolute; left: {position}%; top: -10px; transform: translateX(-50%);">
+                <div style="width: 10px; height: 40px; background-color: black; border-radius: 5px;"></div>
+            </div>
+        </div>
+    </div>
+    """
+    return html
 
 # Main Streamlit app
 def main():
-    st.image('images/logo.png')
-    st.title("CrediSense")
-    st.write("""
-    Enter the details to predict the credit risk using the AI model.
-    """)
+    left_co, cent_co,last_co = st.columns(3)
+    with cent_co:
+        st.image('images/logo.png')
+    # st.image('images/logo.png', width=400)
+    st.markdown("<h1 style='text-align: center;'>CrediSense</h1>", unsafe_allow_html=True)
+    st.markdown("<p style='text-align: center;'>Enter the details to predict the credit risk using the AI model.</p>", unsafe_allow_html=True)
     
     input_df = user_input_features()
     
@@ -87,7 +107,9 @@ def main():
         try:
             prediction = xgb_model.predict(input_df_formatted)[0]
             risk_level = interpret_prediction(prediction)
-            st.markdown(f"## AI Prediction: **{prediction} ({risk_level})**", unsafe_allow_html=True)
+            slider_html = get_slider_html(prediction)
+            st.markdown(f"<h2 style='text-align: center;'>AI Prediction: {prediction} ({risk_level})</h2>", unsafe_allow_html=True)
+            st.markdown(slider_html, unsafe_allow_html=True)
         except Exception as e:
             st.error(f"Error making prediction: {str(e)}")
             st.error(f"Traceback: {traceback.format_exc()}")
