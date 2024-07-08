@@ -49,9 +49,9 @@ def user_input_features():
     for feature, explanation in explanations.items():
         st.write(f'#### {explanation}')
         if feature == 'NETMONTHLYINCOME':
-            value = st.number_input(f"{feature}", min_value=0, max_value=10000000, value=50000)
+            value = st.number_input("", min_value=0, max_value=10000000, value=50000, key=feature)
         else:
-            value = st.slider(f"{feature}", 0, 100, 1)
+            value = st.slider("", 0, 100, 1, key=feature)
         input_data.append((feature, value))
 
     features_df = pd.DataFrame(input_data, columns=['Feature', 'Value'])
