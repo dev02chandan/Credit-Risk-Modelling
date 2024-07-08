@@ -4,7 +4,7 @@ import traceback
 import joblib
 
 # Set the page configuration
-st.set_page_config(page_title="Credit Risk Prediction App", layout="wide")
+st.set_page_config(page_title="CrediSense")
 
 def load_model(file_path):
     try:
@@ -25,24 +25,36 @@ features = [
     'Age_Newest_TL', 'num_std_6mts', 'tot_enq', 'pct_PL_enq_L6m_of_ever', 'recent_level_of_deliq'
 ]
 
+# Feature explanations
+explanations = {
+    'Age_Oldest_TL': 'The age of the oldest trade line (credit account) in years.',
+    'enq_L3m': 'The number of credit enquiries made in the last 3 months.',
+    'time_since_recent_enq': 'The time since the most recent credit enquiry, measured in months.',
+    'num_std': 'The number of standard deviations of trade lines. This measures the variability or diversity in the number of trade lines.',
+    'time_since_recent_payment': 'The time since the most recent payment, measured in months.',
+    'Time_With_Curr_Empr': 'The duration of time the borrower has been with their current employer, measured in months.',
+    'NETMONTHLYINCOME': 'The net monthly income of the borrower, measured in currency units.',
+    'Age_Newest_TL': 'The age of the newest trade line (credit account) in years.',
+    'num_std_6mts': 'The number of standard deviations of trade lines in the last 6 months. This measures the variability or diversity in the number of trade lines in the recent 6 months.',
+    'tot_enq': 'The total number of credit enquiries made by the borrower.',
+    'pct_PL_enq_L6m_of_ever': 'The percentage of personal loan enquiries made in the last 6 months compared to all enquiries ever made.',
+    'recent_level_of_deliq': 'The recent level of delinquency, measured on a scale from 0 to 10, where 0 indicates no delinquency and 10 indicates high delinquency.'
+}
+
 # Function to get user input
 def user_input_features():
-    st.sidebar.header("Input Features")
-    data = {
-        'Age_Oldest_TL': st.sidebar.slider('Age of Oldest Trade Line (years)', 0, 100, 10),
-        'enq_L3m': st.sidebar.slider('Number of Enquiries in Last 3 Months', 0, 100, 1),
-        'time_since_recent_enq': st.sidebar.slider('Time Since Recent Enquiry (months)', 0, 100, 5),
-        'num_std': st.sidebar.slider('Number of Standard Deviation', 0, 100, 1),
-        'time_since_recent_payment': st.sidebar.slider('Time Since Recent Payment (months)', 0, 100, 5),
-        'Time_With_Curr_Empr': st.sidebar.slider('Time with Current Employer (months)', 0, 100, 5),
-        'NETMONTHLYINCOME': st.sidebar.number_input('Net Monthly Income', min_value=0, max_value=100000, value=50000),
-        'Age_Newest_TL': st.sidebar.slider('Age of Newest Trade Line (years)', 0, 100, 1),
-        'num_std_6mts': st.sidebar.slider('Number of Standard Deviation in Last 6 Months', 0, 100, 1),
-        'tot_enq': st.sidebar.slider('Total Enquiries', 0, 100, 5),
-        'pct_PL_enq_L6m_of_ever': st.sidebar.slider('Percentage of Personal Loan Enquiries in Last 6 Months (%)', 0, 100, 10),
-        'recent_level_of_deliq': st.sidebar.slider('Recent Level of Delinquency', 0, 10, 0)
-    }
-    features_df = pd.DataFrame(data, index=[0])
+    input_data = []
+
+    st.header("Input Features")
+    for feature, explanation in explanations.items():
+        st.write(f'#### {explanation}')
+        if feature == 'NETMONTHLYINCOME':
+            value = st.number_input(f"{feature}", min_value=0, max_value=100000, value=50000)
+        else:
+            value = st.slider(f"{feature}", 0, 100, 1)
+        input_data.append((feature, value))
+
+    features_df = pd.DataFrame(input_data, columns=['Feature', 'Value'])
     return features_df
 
 # Function to interpret prediction results
@@ -54,23 +66,28 @@ def interpret_prediction(prediction):
     }
     return mapping.get(prediction, "Unknown Risk Level")
 
+
 # Main Streamlit app
 def main():
-    st.title("Credit Risk Prediction App")
+    st.image('images/logo.png')
+    st.title("CrediSense")
     st.write("""
-    Enter the details to predict the credit risk using the XGBoost model.
+    Enter the details to predict the credit risk using the AI model.
     """)
     
     input_df = user_input_features()
     
-    st.write("## User Input:")
-    st.write(input_df)
+    st.write("## User Input Summary:")
+    st.table(input_df)
+    
+    input_data = {row['Feature']: row['Value'] for index, row in input_df.iterrows()}
+    input_df_formatted = pd.DataFrame(input_data, index=[0])
     
     if xgb_model is not None and st.button("Predict"):
         try:
-            prediction = xgb_model.predict(input_df)[0]
+            prediction = xgb_model.predict(input_df_formatted)[0]
             risk_level = interpret_prediction(prediction)
-            st.success(f"XGBoost Prediction: {prediction} ({risk_level})")
+            st.markdown(f"## AI Prediction: **{prediction} ({risk_level})**", unsafe_allow_html=True)
         except Exception as e:
             st.error(f"Error making prediction: {str(e)}")
             st.error(f"Traceback: {traceback.format_exc()}")
