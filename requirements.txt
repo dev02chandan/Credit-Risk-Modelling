@@ -19,3 +19,4 @@ xgboost
 XlsxWriter
 flask
 gradio
+imblearn
